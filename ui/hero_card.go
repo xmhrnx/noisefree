@@ -22,9 +22,9 @@ func newHeroCard(a *App) *heroCard {
 }
 
 // View lays out the card.
-func (h *heroCard) View() giode.Element {
+func (h *heroCard) View(st giode.Styles) giode.Element {
 	set := h.a.svc.Settings()
-	st := h.a.svc.Pipe.Stats()
+	stats := h.a.svc.Pipe.Stats()
 	title, sub := "Noise removal is off", "Your voice passes through untouched."
 	if set.Enabled {
 		title, sub = "Noise removal is on", "Background noise is being removed in real time."
@@ -37,13 +37,13 @@ func (h *heroCard) View() giode.Element {
 	}
 	backend, latency, load := "—", "—", "—"
 	if h.a.live() {
-		backend, latency, load = st.Backend, fmt.Sprintf("%.0f ms", st.LatencyMs), fmt.Sprintf("%.1f%%", st.Load*100)
+		backend, latency, load = stats.Backend, fmt.Sprintf("%.0f ms", stats.LatencyMs), fmt.Sprintf("%.1f%%", stats.Load*100)
 	}
 	backendIcon, backendTint, backendColor := "cpu", tintAccent, "theme.accent"
 	if len(backend) > 3 && backend[:3] == "GPU" {
 		backendIcon, backendTint, backendColor = "gpu", tintPrimary, "theme.primary"
 	}
-	return giode.Box(cardStyle.With(giode.Styles{Align: giode.AlignCenter, Width: -1, Justify: giode.JustifyCenter}),
+	return giode.Box(st,
 		h.power.View(),
 		giode.Stack(giode.Styles{Gap: 4, Align: giode.AlignCenter},
 			giode.Text(title, giode.Styles{FontSize: 18, FontWeight: giode.FontWeightBold, Color: "theme.text"}),

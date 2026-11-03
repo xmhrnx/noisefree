@@ -33,6 +33,10 @@ type Service struct {
 	saveErr   error
 	done      chan struct{}
 	closeOnce sync.Once
+
+	// OnNotice receives messages worth showing the user (a repaired
+	// default device, a newly found driver), from background goroutines.
+	OnNotice func(msg string)
 }
 
 // Open loads settings and the catalog and opens the audio system. A broken
@@ -204,6 +208,7 @@ func (s *Service) Restart() error {
 		s.vmic = st
 		s.mu.Unlock()
 	}
+	s.guardDefaults()
 	err := s.Pipe.Start(audio.Config{
 		Input: s.inputName(set.Input), Output: s.OutputName(), Monitor: s.monitorName(set.MonitorDevice),
 		MonitorOn: set.Monitor, BufferMs: set.BufferMs,
@@ -212,6 +217,68 @@ func (s *Service) Restart() error {
 	s.audioErr = err
 	s.mu.Unlock()
 	return err
+}
+
+// guardDefaults puts the system's default speaker and microphone back on
+// real devices when a virtual cable took them over, and remembers the real
+// ones for next time.
+func (s *Service) guardDefaults() {
+	set := s.Settings()
+	if !set.ProtectDefaults {
+		return
+	}
+	r, err := vmic.GuardDefaults(set.LastOutput, set.LastInput)
+	if err != nil && !errors.Is(err, vmic.ErrUnsupported) {
+		s.notice("Couldn't check the default audio devices: " + err.Error())
+	}
+	if (r.RealOutput != "" && r.RealOutput != set.LastOutput) || (r.RealInput != "" && r.RealInput != set.LastInput) {
+		s.Update(func(st *settings.Settings) {
+			if r.RealOutput != "" {
+				st.LastOutput = r.RealOutput
+			}
+			if r.RealInput != "" {
+				st.LastInput = r.RealInput
+			}
+		})
+	}
+	if r.FixedOutput != "" {
+		s.notice(fmt.Sprintf("%s had become your default speaker, which silences your computer. NoiseFree switched it back to %s.", r.WasOutput, r.FixedOutput))
+	}
+	if r.FixedInput != "" {
+		s.notice(fmt.Sprintf("%s had become your default microphone. NoiseFree switched it back to %s; choose %s in your apps instead.", r.WasInput, r.FixedInput, s.VirtualMic().MicName))
+	}
+}
+
+func (s *Service) notice(msg string) {
+	if s.OnNotice != nil {
+		s.OnNotice(msg)
+	}
+}
+
+// Watch keeps the defaults protected and notices a virtual cable driver
+// installed while NoiseFree runs, switching to it. It returns when the
+// service closes; run it in a goroutine.
+func (s *Service) Watch() {
+	t := time.NewTicker(10 * time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-s.done:
+			return
+		case <-t.C:
+		}
+		s.guardDefaults()
+		set, st := s.Settings(), s.VirtualMic()
+		if !set.VirtualMic || st.Ready || st.InstallURL == "" {
+			continue
+		}
+		_, outs, _ := s.DeviceNames()
+		if vmic.Setup(outs).Ready {
+			if err := s.Restart(); err == nil {
+				s.notice("Virtual cable found. Your clean voice is now on " + s.VirtualMic().MicName + ".")
+			}
+		}
+	}
 }
 
 // inputName guards against feedback: when the system default microphone is
@@ -254,6 +321,12 @@ func realDefault(devs []audio.Device) string {
 		}
 	}
 	return ""
+}
+
+// PlayPreview plays the last preview take on the user's speakers (the
+// monitor device, never a virtual cable): processed, or the original.
+func (s *Service) PlayPreview(original bool) error {
+	return s.Pipe.PlayPreview(s.monitorName(s.Settings().MonitorDevice), original)
 }
 
 // AudioError is the last failure to start audio.

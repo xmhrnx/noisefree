@@ -11,7 +11,7 @@ func setup(outputs []string) Status {
 		return Status{Ready: true, OutputMatch: n, MicName: mic}
 	}
 	return Status{
-		Help:       "Install the free VB-Audio Virtual Cable, then restart NoiseFree. It adds the \"CABLE Output\" microphone your apps record from.",
+		Help:       "Install the free VB-Audio Virtual Cable. NoiseFree finds it automatically, keeps your speakers as the default output, and sends your clean voice to the \"CABLE Output\" microphone your apps record from.",
 		InstallURL: "https://vb-audio.com/Cable/",
 	}
 }

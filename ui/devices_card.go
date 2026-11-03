@@ -86,7 +86,7 @@ func fill(s *dropdown.Select, first string, names []string, current string) {
 }
 
 // View lays out the card.
-func (c *devicesCard) View() giode.Element {
+func (c *devicesCard) View(st giode.Styles) giode.Element {
 	kids := []giode.Element{
 		labelled("Microphone", c.input),
 		labelled("Send clean audio to", c.output),
@@ -96,5 +96,5 @@ func (c *devicesCard) View() giode.Element {
 	if c.a.svc.Settings().Monitor {
 		kids = append(kids, c.monitor)
 	}
-	return section("headphones", "Devices", "Where audio comes from and goes to.", c.refreshBtn, kids...)
+	return sectionStyled(st, "headphones", "Devices", "Where audio comes from and goes to.", c.refreshBtn, kids...)
 }

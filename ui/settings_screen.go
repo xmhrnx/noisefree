@@ -14,10 +14,10 @@ import (
 
 // settingsScreen holds app-wide preferences.
 type settingsScreen struct {
-	a                            *App
-	theme, buffer                *segmented.Control
-	closeToTray, atLogin, vmicOn *toggle.Switch
-	openFolder                   *button.Button
+	a                                   *App
+	theme, buffer                       *segmented.Control
+	closeToTray, atLogin, vmicOn, guard *toggle.Switch
+	openFolder                          *button.Button
 }
 
 func newSettingsScreen(a *App) *settingsScreen {
@@ -54,6 +54,10 @@ func newSettingsScreen(a *App) *settingsScreen {
 		a.restartAudio()
 	})
 	s.vmicOn.SetChecked(set.VirtualMic)
+	s.guard = giode.Input.Switch("").OnChange(func(on bool) {
+		a.svc.Update(func(st *settings.Settings) { st.ProtectDefaults = on })
+	})
+	s.guard.SetChecked(set.ProtectDefaults)
 	s.openFolder = giode.Button("Open folder", secondaryButton()).Icon(icon("external-link", 15, "")).OnClick(func() {
 		u := (&url.URL{Scheme: "file", Path: filepath.ToSlash(a.svc.Dir)}).String()
 		go func() {
@@ -88,7 +92,10 @@ func (s *settingsScreen) View() giode.Element {
 		section("activity", "Performance", "Trade a few milliseconds for even less CPU.", nil,
 			settingRow("Audio buffer", "Larger buffers wake the CPU half as often.", s.buffer)),
 		section("mic", "Virtual microphone", "Let other apps record your clean voice.", nil,
-			settingRow("Use a virtual microphone", "On Linux NoiseFree creates one; on Windows and macOS it uses VB-Cable or BlackHole.", s.vmicOn)),
+			settingRow("Use a virtual microphone", "On Linux NoiseFree creates one; on Windows and macOS it uses VB-Cable or BlackHole.", s.vmicOn),
+			divider,
+			settingRow("Keep my speakers and microphone as the defaults",
+				"Virtual cable drivers often make themselves the system default when installed, which silences your computer. NoiseFree switches back to your real devices.", s.guard)),
 		section("monitor", "Window", "How NoiseFree behaves in the background.", nil,
 			settingRow("Keep running in the tray", "Closing the window keeps noise removal running.", s.closeToTray),
 			divider,

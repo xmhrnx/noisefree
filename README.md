@@ -6,6 +6,7 @@ Teams, OBS and the browser through a virtual microphone. Built with
 [Giode](https://github.com/xmhrnx/giode) for Windows, macOS and Linux.
 
 ![Microphone page](docs/screenshots/home.png)
+![Preview](docs/screenshots/preview.png)
 ![Engine library](docs/screenshots/engines.png)
 
 - **Swappable engines.** Two are built in and work offline. Install more from
@@ -15,6 +16,13 @@ Teams, OBS and the browser through a virtual microphone. Built with
   NVIDIA, AMD, Intel, Qualcomm), Core ML (Apple silicon) or CUDA (NVIDIA on
   Linux). If no GPU backend is available, they fall back to the CPU and tell
   you why.
+- **Preview.** Record up to 10 seconds, play it back, and switch between the
+  cleaned and the original take while it plays to hear the difference.
+- **Your speakers stay yours.** Virtual cable drivers (VB-Audio's in
+  particular) make themselves the system's default output when installed,
+  which silences the computer. NoiseFree notices within seconds and switches the default
+  speaker and microphone back to the real devices you used before (Windows and
+  Linux; Settings → *Keep my speakers and microphone as the defaults*).
 - **Light on resources.** The suppressor runs on the audio thread with no
   allocations and no extra threads. Measured in this repo's tests: RNNoise
   uses about 1–2% of one core, NoiseFree Lite about 0.4%. The UI redraws only while
@@ -80,7 +88,7 @@ plugin's first mono effect at 48 kHz.
 | OS | How |
 | --- | --- |
 | Linux | NoiseFree creates **NoiseFree Microphone** itself through PulseAudio/PipeWire (`pactl`) and removes it on exit. |
-| Windows | Plays into [VB-Audio Virtual Cable](https://vb-audio.com/Cable/) (free). Pick **CABLE Output** as your microphone. |
+| Windows | Plays into [VB-Audio Virtual Cable](https://vb-audio.com/Cable/) (free). Pick **CABLE Output** as your microphone. NoiseFree finds the cable as soon as it's installed and undoes the driver making itself your default speaker. |
 | macOS | Plays into [BlackHole 2ch](https://existential.audio/blackhole/) (free). Pick **BlackHole 2ch** as your microphone. |
 
 ## Build
@@ -134,7 +142,7 @@ ui/                      Giode interface, one component per file
 ```sh
 go test ./...
 NOISEFREE_TEST_NETWORK=1 go test ./internal/catalog -run Internet        # installs DTLN + ONNX Runtime
-NOISEFREE_TEST_PULSE=1 go test ./internal/audio -run EndToEnd             # full chain on a PulseAudio server
+NOISEFREE_TEST_PULSE=1 go test ./internal/audio ./internal/vmic          # full chain, preview and default-device guard on a PulseAudio server
 NOISEFREE_TEST_ORT=/path/libonnxruntime.so.1.24.4 NOISEFREE_TEST_DTLN=/path/models go test ./internal/dtln
 ```
 

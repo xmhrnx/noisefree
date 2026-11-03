@@ -16,22 +16,22 @@ import (
 //go:embed fonts/*.ttf icons/*.svg
 var assets embed.FS
 
-// Brand colors. The gradient runs from primary (violet) to accent (cyan).
+// Brand colors: a warm gradient from coral (primary) to amber (accent).
 const (
-	brandViolet = "#7C5CFF"
-	brandCyan   = "#22D3EE"
+	brandHot  = "#FF5E3A"
+	brandGold = "#FFB547"
 )
 
 var (
 	darkPalette = giode.Palette{
-		Primary: brandViolet, Secondary: "#1B1E29", Background: "#090A0F", Surface: "#11131A",
-		Text: "#ECEEF5", Border: "#232735", OnPrimary: "#FFFFFF", Muted: "#8B91A5",
-		Accent: brandCyan, Success: "#34D399", Warning: "#FBBF24", Danger: "#F87171", Info: "#60A5FA",
+		Primary: brandHot, Secondary: "#221915", Background: "#0E0A08", Surface: "#18120F",
+		Text: "#F7EFEA", Border: "#2F2521", OnPrimary: "#FFFFFF", Muted: "#A8968C",
+		Accent: brandGold, Success: "#4ADE80", Warning: "#FACC15", Danger: "#F43F5E", Info: "#60A5FA",
 	}
 	lightPalette = giode.Palette{
-		Primary: "#6A48F5", Secondary: "#EEF0F6", Background: "#F4F5FA", Surface: "#FFFFFF",
-		Text: "#11131F", Border: "#E2E5EE", OnPrimary: "#FFFFFF", Muted: "#5D6478",
-		Accent: "#0891B2", Success: "#059669", Warning: "#D97706", Danger: "#DC2626", Info: "#2563EB",
+		Primary: "#E4512B", Secondary: "#F5EDE7", Background: "#FBF6F2", Surface: "#FFFFFF",
+		Text: "#22160F", Border: "#EADFD6", OnPrimary: "#FFFFFF", Muted: "#7E6C61",
+		Accent: "#D9870F", Success: "#16A34A", Warning: "#CA8A04", Danger: "#E11D48", Info: "#2563EB",
 	}
 )
 

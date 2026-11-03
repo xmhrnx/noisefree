@@ -43,7 +43,7 @@ func newEnhancementsCard(a *App) *enhancementsCard {
 }
 
 // View lays out the card.
-func (c *enhancementsCard) View() giode.Element {
+func (c *enhancementsCard) View(st giode.Styles) giode.Element {
 	set := c.a.svc.Settings()
 	kids := []giode.Element{
 		settingRow("Rumble filter", "Cuts desk thumps, traffic rumble and hum below 80 Hz.", c.highPass),
@@ -55,7 +55,7 @@ func (c *enhancementsCard) View() giode.Element {
 	}
 	kids = append(kids, giode.Divider(giode.Styles{Color: "theme.border"}),
 		sliderRow("Output volume", dB(set.GainDB), c.gain))
-	return section("sliders-horizontal", "Voice enhancements", "Lightweight extras, applied after noise removal.", nil, kids...)
+	return sectionStyled(st, "sliders-horizontal", "Voice enhancements", "Lightweight extras, applied after noise removal.", nil, kids...)
 }
 
 func sliderRow(label, value string, s *slider.Slider) giode.Element {

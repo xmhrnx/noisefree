@@ -28,7 +28,7 @@ func newVirtualMicCard(a *App) *virtualMicCard {
 }
 
 // View lays out the card.
-func (c *virtualMicCard) View() giode.Element {
+func (c *virtualMicCard) View(st giode.Styles) giode.Element {
 	vm := c.a.svc.VirtualMic()
 	set := c.a.svc.Settings()
 	var kids []giode.Element
@@ -57,5 +57,5 @@ func (c *virtualMicCard) View() giode.Element {
 			kids = append(kids, c.get)
 		}
 	}
-	return section("mic", "Virtual microphone", "How other apps receive your clean voice.", nil, kids...)
+	return sectionStyled(st, "mic", "Virtual microphone", "How other apps receive your clean voice.", nil, kids...)
 }

@@ -40,6 +40,12 @@ func New(win *giode.App, svc *core.Service) *App {
 	a.home = newHomeScreen(a)
 	a.engines = newEnginesScreen(a)
 	a.settings = newSettingsScreen(a)
+	svc.OnNotice = func(msg string) {
+		win.Post(func() {
+			a.toast(giode.ToastWarning, msg)
+			a.home.devices.refresh()
+		})
+	}
 	a.content = giode.Scroll(a.pageView, giode.Styles{ScrollBar: giode.ScrollBar{Width: 6, ThumbColor: track,
 		TrackColor: "transparent", Inset: 4, AutoHide: true}})
 	if useCustomTitleBar {
@@ -72,6 +78,7 @@ func (a *App) Start() {
 		})
 	}()
 	go a.tick()
+	go a.svc.Watch()
 }
 
 // tick redraws 20 times a second while the live meters are on screen;
