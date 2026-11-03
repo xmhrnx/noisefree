@@ -9,12 +9,12 @@ type activityCard struct {
 }
 
 // View lays out the card.
-func (c *activityCard) View() giode.Element {
+func (c *activityCard) View(st giode.Styles) giode.Element {
 	live := c.a.live()
 	p := c.a.svc.Pipe
 	legend := giode.Row(giode.Styles{Gap: 12, Align: giode.AlignCenter, Wrap: giode.WrapNoWrap},
 		legendDot(track, "Raw"), legendDot("theme.primary", "Clean"))
-	return giode.Box(cardStyle.With(giode.Styles{Width: -1}),
+	return giode.Box(st,
 		giode.Row(giode.Styles{Gap: 12, Align: giode.AlignCenter, Wrap: giode.WrapNoWrap},
 			giode.Box(giode.Styles{Background: tintPrimary, BorderRadius: 10, Padding: giode.UniformInset(8)},
 				icon("audio-waveform", 18, "theme.primary")),

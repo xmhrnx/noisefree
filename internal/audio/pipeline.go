@@ -14,6 +14,7 @@ import (
 	"github.com/gen2brain/malgo"
 	"github.com/xmhrnx/noisefree/internal/dsp"
 	"github.com/xmhrnx/noisefree/internal/engine"
+	"github.com/xmhrnx/noisefree/internal/vmic"
 )
 
 // Device is an audio input or output.
@@ -51,6 +52,8 @@ type Pipeline struct {
 	load                      atomic.Uint32
 	stopped                   atomic.Bool
 
+	preview preview
+
 	In, Out dsp.Meter
 	// OnStop is called (from an audio thread) when a device stops on its
 	// own, for example when it's unplugged.
@@ -72,6 +75,7 @@ func New() (*Pipeline, error) {
 
 // Close stops audio and releases the backend.
 func (p *Pipeline) Close() {
+	p.StopPlayback()
 	p.Stop()
 	p.mu.Lock()
 	if p.proc != nil {
@@ -105,10 +109,7 @@ func (p *Pipeline) Devices() (inputs, outputs []Device, err error) {
 
 // IsOwnDevice reports whether a device belongs to NoiseFree's virtual
 // microphone; recording from it would feed NoiseFree its own output.
-func IsOwnDevice(name string) bool {
-	n := strings.ToLower(name)
-	return strings.Contains(n, "noisefree") || strings.Contains(n, "cable output") || strings.Contains(n, "blackhole")
-}
+func IsOwnDevice(name string) bool { return vmic.IsVirtual(name) }
 
 // FindOutput returns the name of the first output containing match.
 func FindOutput(outputs []Device, match string) string {
@@ -198,6 +199,7 @@ func (p *Pipeline) Stop() {
 	p.dev, p.mon = nil, nil
 	p.mu.Unlock()
 	p.stopped.Store(true)
+	p.StopRecording()
 	// Uninit waits for the callbacks, which take mu, so it runs unlocked.
 	for _, d := range []*malgo.Device{dev, mon} {
 		if d != nil {
@@ -307,6 +309,7 @@ func (p *Pipeline) process(out, in []byte, frames uint32) {
 		clear(o)
 	}
 	p.In.Measure(o)
+	p.preview.keepRaw(o)
 
 	p.mu.Lock()
 	if p.highPass.Load() {
@@ -332,6 +335,7 @@ func (p *Pipeline) process(out, in []byte, frames uint32) {
 		}
 	}
 	p.Out.Measure(o)
+	p.preview.record(o)
 	if mon != nil {
 		mon.write(o)
 	}

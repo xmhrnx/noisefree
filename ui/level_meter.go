@@ -7,19 +7,16 @@ import (
 
 const meterSegments = 36
 
-// meterColors grade the lit segments from the brand violet to cyan, with
-// the last segments warning of clipping.
+// meterColors grade the lit segments from amber to coral, with the last
+// segments warning of clipping.
 var meterColors = func() []string {
 	c := make([]string, meterSegments)
 	for i := range c {
 		t := float32(i) / float32(meterSegments-1)
-		switch {
-		case t > 0.92:
-			c[i] = "theme.danger"
-		case t > 0.8:
-			c[i] = "theme.warning"
-		default:
-			c[i] = giode.Mix(brandCyan, brandViolet, float64(t/0.8))
+		if t > 0.9 {
+			c[i] = "theme.danger" // clipping
+		} else {
+			c[i] = giode.Mix(brandGold, brandHot, float64(t/0.9))
 		}
 	}
 	return c

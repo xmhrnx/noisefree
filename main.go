@@ -10,9 +10,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/xmhrnx/giode"
 	"github.com/xmhrnx/noisefree/internal/core"
 	"github.com/xmhrnx/noisefree/ui"
-	"github.com/xmhrnx/giode"
 )
 
 //go:embed assets/icon.png

@@ -29,7 +29,7 @@ var rawBar = giode.Mix("theme.text", "theme.surface", 0.16)
 var historyColors = func() []string {
 	c := make([]string, historyLen)
 	for i := range c {
-		c[i] = giode.Mix(brandCyan, brandViolet, float64(i)/historyLen)
+		c[i] = giode.Mix(brandGold, brandHot, float64(i)/historyLen)
 	}
 	return c
 }()

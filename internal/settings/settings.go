@@ -27,6 +27,13 @@ type Settings struct {
 	Theme         string  `json:"theme"`    // "dark", "light" or "system"
 	CloseToTray   bool    `json:"closeToTray"`
 	VirtualMic    bool    `json:"virtualMic"`
+	// ProtectDefaults switches the system's default speaker and microphone
+	// back to real devices when a virtual cable driver takes them over.
+	ProtectDefaults bool `json:"protectDefaults"`
+	// LastOutput and LastInput are the last real system defaults seen, the
+	// devices ProtectDefaults restores.
+	LastOutput string `json:"lastOutput"`
+	LastInput  string `json:"lastInput"`
 }
 
 // Defaults are the settings on first launch.
@@ -34,6 +41,7 @@ func Defaults() Settings {
 	return Settings{
 		Enabled: true, Engine: "rnnoise", Strength: 0.9, HighPass: true,
 		GateDB: -50, BufferMs: 10, Theme: "dark", CloseToTray: true, VirtualMic: true,
+		ProtectDefaults: true,
 	}
 }
 

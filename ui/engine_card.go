@@ -131,7 +131,7 @@ func engineMonogram(name string) giode.Element {
 		initial = strings.ToUpper(name[:1])
 	}
 	return giode.Box(giode.Styles{Width: 40, Height: 40, BorderRadius: 12, Align: giode.AlignCenter, Justify: giode.JustifyCenter,
-		BackgroundGradient: giode.Linear(135, brandViolet, brandCyan)},
+		BackgroundGradient: giode.Linear(135, brandHot, brandGold)},
 		giode.Text(initial, giode.Styles{FontSize: 17, FontWeight: giode.FontWeightBold, Color: "#FFFFFF"}))
 }
 

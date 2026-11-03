@@ -81,7 +81,7 @@ func (c *suppressionCard) refresh() {
 }
 
 // View lays out the card.
-func (c *suppressionCard) View() giode.Element {
+func (c *suppressionCard) View(st giode.Styles) giode.Element {
 	set := c.a.svc.Settings()
 	e, _ := c.a.svc.Store.Get(set.Engine)
 	gpuDesc := "Run neural engines on your graphics card to free the CPU."
@@ -111,5 +111,5 @@ func (c *suppressionCard) View() giode.Element {
 		kids = append(kids, giode.Row(giode.Styles{Gap: 8, Align: giode.AlignCenter, Wrap: giode.WrapNoWrap, Width: -1,
 			Background: tintWarning, BorderRadius: 10, Padding: giode.SymmetricInset(12, 8)}, row...))
 	}
-	return section("sparkles", "Noise removal", "Choose how your voice is cleaned.", c.more, kids...)
+	return sectionStyled(st, "sparkles", "Noise removal", "Choose how your voice is cleaned.", c.more, kids...)
 }

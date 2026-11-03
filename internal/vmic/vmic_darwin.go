@@ -7,7 +7,7 @@ func setup(outputs []string) Status {
 		return Status{Ready: true, OutputMatch: n, MicName: n}
 	}
 	return Status{
-		Help:       "Install the free BlackHole 2ch driver, then restart NoiseFree. Pick \"BlackHole 2ch\" as the microphone in your apps.",
+		Help:       "Install the free BlackHole 2ch driver. NoiseFree finds it automatically; then pick \"BlackHole 2ch\" as the microphone in your apps.",
 		InstallURL: "https://existential.audio/blackhole/",
 	}
 }
