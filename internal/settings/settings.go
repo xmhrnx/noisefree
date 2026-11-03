@@ -34,6 +34,27 @@ type Settings struct {
 	// devices ProtectDefaults restores.
 	LastOutput string `json:"lastOutput"`
 	LastInput  string `json:"lastInput"`
+
+	Video Video `json:"video"`
+}
+
+// Video are the camera effect settings.
+type Video struct {
+	Enabled       bool    `json:"enabled"`       // camera running
+	Camera        string  `json:"camera"`        // device name, "" = first
+	Height        int     `json:"height"`        // 720, 540 or 360
+	VirtualCamera bool    `json:"virtualCamera"` // publish to the virtual camera
+	Background    int     `json:"background"`    // vision.BackgroundMode
+	BlurStrength  float32 `json:"blurStrength"`
+	Preset        string  `json:"preset"`    // built-in background name
+	ImagePath     string  `json:"imagePath"` // custom background, overrides Preset
+	RemoveColor   string  `json:"removeColor"`
+	EyeContact    bool    `json:"eyeContact"`
+	EyeStrength   float32 `json:"eyeStrength"`
+	Lighting      bool    `json:"lighting"`
+	LightStrength float32 `json:"lightStrength"`
+	Denoise       bool    `json:"denoise"`
+	Sharpen       bool    `json:"sharpen"`
 }
 
 // Defaults are the settings on first launch.
@@ -42,6 +63,8 @@ func Defaults() Settings {
 		Enabled: true, Engine: "rnnoise", Strength: 0.9, HighPass: true,
 		GateDB: -50, BufferMs: 10, Theme: "dark", CloseToTray: true, VirtualMic: true,
 		ProtectDefaults: true,
+		Video: Video{Height: 720, VirtualCamera: true, Background: 1, BlurStrength: 0.6, Preset: "Studio",
+			RemoveColor: "#00B140", EyeStrength: 0.8, Lighting: true, LightStrength: 0.6, Denoise: true},
 	}
 }
 

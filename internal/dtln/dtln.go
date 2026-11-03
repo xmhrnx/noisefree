@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/xmhrnx/noisefree/internal/dsp"
+	"github.com/xmhrnx/noisefree/internal/onnx"
 	ort "github.com/yalue/onnxruntime_go"
 )
 
@@ -38,7 +39,7 @@ type Model struct {
 // Open loads model_1.onnx and model_2.onnx from dir with the ONNX Runtime
 // library at libPath, on the requested accelerator.
 func Open(dir, libPath string, acc Accelerator) (*Model, error) {
-	if err := initRuntime(libPath); err != nil {
+	if err := onnx.Init(libPath); err != nil {
 		return nil, err
 	}
 	m := &Model{fft: dsp.NewFFT(blockLen), rs: dsp.NewResampler3(),
@@ -62,7 +63,7 @@ func Open(dir, libPath string, acc Accelerator) (*Model, error) {
 		m.Close()
 		return nil, err
 	}
-	opts, used, warn := sessionOptions(acc)
+	opts, used, warn := onnx.SessionOptions(acc, 1)
 	if opts == nil {
 		m.Close()
 		return nil, warn
@@ -71,7 +72,7 @@ func Open(dir, libPath string, acc Accelerator) (*Model, error) {
 	if warn != nil {
 		m.Warning = warn.Error()
 		opts.Destroy()
-		if opts, used, _ = sessionOptions(CPU); opts == nil {
+		if opts, used, _ = onnx.SessionOptions(CPU, 1); opts == nil {
 			m.Close()
 			return nil, warn
 		}

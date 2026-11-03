@@ -9,6 +9,7 @@ import (
 // Pages of the app.
 const (
 	pageHome = iota
+	pageCamera
 	pageEngines
 	pageSettings
 )
@@ -26,6 +27,7 @@ func newSidebar(a *App) *sidebar {
 			func() bool { return a.page == page }, func() { a.page = page }))
 	}
 	add("mic", "Microphone", pageHome)
+	add("video", "Camera", pageCamera)
 	add("blocks", "Engines", pageEngines)
 	add("settings", "Settings", pageSettings)
 	return s

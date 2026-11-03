@@ -59,27 +59,27 @@ func TestEndToEndOnPulseAudio(t *testing.T) {
 	measure := func(enabled bool) float64 {
 		p.SetEnabled(enabled)
 		play := exec.Command("pacat", "--playback", "-d", "noise_src", "--format=float32le", "--rate=48000", "--channels=1")
-		play.Stdin = bytes.NewReader(noise(48000 * 4))
+		play.Stdin = bytes.NewReader(noise(48000 * 9))
 		if err := play.Start(); err != nil {
 			t.Fatal(err)
 		}
 		defer play.Wait()
-		time.Sleep(1500 * time.Millisecond) // let the suppressor settle
+		time.Sleep(4 * time.Second) // audio needs ~2 s to flow through the server; then the suppressor settles
 		rec := exec.Command("parec", "-d", "noisefree_mic", "--format=float32le", "--rate=48000", "--channels=1")
 		var buf bytes.Buffer
 		rec.Stdout = &buf
 		rec.Start()
-		time.Sleep(1500 * time.Millisecond)
+		time.Sleep(2500 * time.Millisecond)
 		rec.Process.Kill()
 		rec.Wait()
+		t.Logf("enabled=%v: pipeline in %.4f out %.4f; recorded %.4f", enabled, p.In.RMS(), p.Out.RMS(), rms(buf.Bytes()))
 		return rms(buf.Bytes())
 	}
 
-	proc, err := engine.NewRNNoise()
-	if err != nil {
-		t.Fatal(err)
-	}
-	p.SetProcessor(proc)
+	// The deterministic Lite engine: this test checks the plumbing. RNNoise's
+	// result on synthetic white noise swings from run to run with what it
+	// heard before, which says nothing about the pipeline.
+	p.SetProcessor(engine.NewLite())
 	if err := p.Start(Config{Input: in, Output: out, BufferMs: 10}); err != nil {
 		t.Fatal(err)
 	}
@@ -91,8 +91,8 @@ func TestEndToEndOnPulseAudio(t *testing.T) {
 	if raw < 0.01 {
 		t.Fatal("no audio reached the virtual microphone")
 	}
-	if 20*math.Log10(raw/clean) < 6 { // RNNoise removes ~12 dB of synthetic white noise
-		t.Fatal("noise reduced by less than 6 dB")
+	if 20*math.Log10(raw/clean) < 10 {
+		t.Fatal("noise reduced by less than 10 dB")
 	}
 }
 

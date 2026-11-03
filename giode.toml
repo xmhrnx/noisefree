@@ -24,7 +24,8 @@ microphone = "NoiseFree listens to your microphone to remove background noise in
 
 [windows]
 arch = "amd64"
-cc = "x86_64-w64-mingw32-gcc"  # cgo: miniaudio, RNNoise, the LADSPA host
+cc = "x86_64-w64-mingw32-gcc"   # cgo: miniaudio, RNNoise, the LADSPA host
+cxx = "x86_64-w64-mingw32-g++"  # C++: DirectShow camera capture
 
 [windows.msix]
 publisher = "CN=xmhrnx"      # must match the signing certificate's subject when you sign

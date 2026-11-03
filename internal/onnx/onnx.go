@@ -1,6 +1,6 @@
-// Package dtln runs the DTLN speech enhancement network (Westhausen & Meyer,
-// MIT license) through ONNX Runtime, on the CPU or a GPU.
-package dtln
+// Package onnx loads ONNX Runtime once per process and creates sessions on
+// the CPU or a GPU, shared by the audio and video models.
+package onnx
 
 import (
 	"fmt"
@@ -27,9 +27,9 @@ var (
 	runtimePath string
 )
 
-// initRuntime loads the ONNX Runtime library once per process. ONNX Runtime
+// Init loads the ONNX Runtime library once per process. ONNX Runtime
 // can't be unloaded, so switching to another build needs a restart.
-func initRuntime(libPath string) error {
+func Init(libPath string) error {
 	runtimeMu.Lock()
 	defer runtimeMu.Unlock()
 	if runtimePath != "" {
@@ -49,14 +49,20 @@ func initRuntime(libPath string) error {
 // ErrRestartRequired means another ONNX Runtime build is already loaded.
 var ErrRestartRequired = fmt.Errorf("a different ONNX Runtime is loaded; restart NoiseFree to switch")
 
-func sessionOptions(acc Accelerator) (*ort.SessionOptions, Accelerator, error) {
+// SessionOptions returns options for a session on acc using threads CPU
+// threads, and the accelerator actually set up: on failure the options fall
+// back to the CPU and the error says why. Small models want one thread:
+// spinning thread pools would cost more than the inference itself.
+func SessionOptions(acc Accelerator, threads int) (*ort.SessionOptions, Accelerator, error) {
 	o, err := ort.NewSessionOptions()
 	if err != nil {
 		return nil, CPU, err
 	}
-	// One thread: the model is tiny, and spinning thread pools would cost
-	// more CPU than the inference itself.
-	_ = o.SetIntraOpNumThreads(1)
+	_ = o.SetIntraOpNumThreads(max(threads, 1))
+	// Idle worker threads would otherwise spin between frames, burning a
+	// core for nothing in an app that runs all day.
+	_ = o.AddSessionConfigEntry("session.intra_op.allow_spinning", "0")
+	_ = o.AddSessionConfigEntry("session.inter_op.allow_spinning", "0")
 	_ = o.SetInterOpNumThreads(1)
 	_ = o.SetGraphOptimizationLevel(ort.GraphOptimizationLevelEnableAll)
 	var perr error

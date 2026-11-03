@@ -48,6 +48,13 @@ func (s *enginesScreen) install(id string) {
 				s.a.toast(giode.ToastError, "Install failed: "+err.Error())
 				return
 			}
+			if s.a.svc.Video.Running() {
+				s.a.camera.restart() // pick up the AI effects or the GPU
+			}
+			if e.ID == "onnxruntime" && s.a.page == pageCamera {
+				s.a.toast(giode.ToastSuccess, "AI video effects are ready.")
+				return
+			}
 			if e.Kind == catalog.KindRuntime {
 				s.a.toast(giode.ToastSuccess, e.Name+" installed. Turn on GPU acceleration on the Microphone page.")
 				return

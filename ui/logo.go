@@ -11,7 +11,7 @@ func logo(size float32) giode.Element {
 	return giode.Box(giode.Styles{
 		Width: properties.Width(size), Height: properties.Height(size), BorderRadius: properties.BorderRadius(size * 0.3),
 		BackgroundGradient: giode.Linear(150, brandHot, brandGold),
-		BoxShadow:          giode.BoxShadow{Y: 4, Blur: 14, Color: "#FF5E3A55"},
+		BoxShadow:          giode.BoxShadow{Y: 4, Blur: 14, Color: "#EE6F5755"},
 	}, giode.Canvas(giode.Styles{Width: properties.Width(size), Height: properties.Height(size)}, func(p *giode.Painter) {
 		u := size / 100 // the icon is designed on a 100-unit grid
 		cx, cy := 50*u, 44*u

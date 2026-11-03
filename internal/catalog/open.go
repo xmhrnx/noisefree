@@ -71,7 +71,7 @@ func (s *Store) Open(id string, useGPU bool) (engine.Processor, string, error) {
 		})
 		return p, "", err
 	case KindDTLN:
-		lib, acc, warn := s.runtimeFor(useGPU)
+		lib, acc, warn := s.RuntimeFor(useGPU)
 		if lib == "" {
 			return nil, "", errors.New("ONNX Runtime isn't installed; reinstall the engine")
 		}
@@ -87,8 +87,10 @@ func (s *Store) Open(id string, useGPU bool) (engine.Processor, string, error) {
 	return nil, "", fmt.Errorf("%s can't be run (kind %q)", e.Name, e.Kind)
 }
 
-// runtimeFor picks the ONNX Runtime library and accelerator to use.
-func (s *Store) runtimeFor(useGPU bool) (string, dtln.Accelerator, string) {
+// RuntimeFor picks the ONNX Runtime library and accelerator to use; the
+// library is empty when ONNX Runtime isn't installed, and the warning
+// explains a fallback to the CPU.
+func (s *Store) RuntimeFor(useGPU bool) (string, dtln.Accelerator, string) {
 	cpu := findLibrary(s.EngineDir("onnxruntime"))
 	if !useGPU {
 		return cpu, dtln.CPU, ""

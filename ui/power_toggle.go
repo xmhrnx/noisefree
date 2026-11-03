@@ -25,8 +25,8 @@ var (
 	haloColors   = []string{giode.Mix(brandHot, "theme.surface", 0.10), giode.Mix(brandHot, "theme.surface", 0.16), giode.Mix(brandHot, "theme.surface", 0.24)}
 	discOff      = giode.Mix("theme.text", "theme.surface", 0.05)
 	discOffHover = giode.Mix("theme.text", "theme.surface", 0.09)
-	discOn       = giode.Mix(brandHot, "#1C0A05", 0.55)
-	discOnHover  = giode.Mix(brandHot, "#1C0A05", 0.65)
+	discOn       = giode.Mix(brandHot, "#141012", 0.55)
+	discOnHover  = giode.Mix(brandHot, "#141012", 0.65)
 )
 
 // powerToggle is the big round on/off control. Its glow breathes with the

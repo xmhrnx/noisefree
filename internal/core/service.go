@@ -21,6 +21,7 @@ type Service struct {
 	Dir   string
 	Store *catalog.Store
 	Pipe  *audio.Pipeline
+	Video *Video
 
 	mu        sync.Mutex
 	set       settings.Settings
@@ -33,6 +34,8 @@ type Service struct {
 	saveErr   error
 	done      chan struct{}
 	closeOnce sync.Once
+
+	lastGuardErr string
 
 	// OnNotice receives messages worth showing the user (a repaired
 	// default device, a newly found driver), from background goroutines.
@@ -53,6 +56,7 @@ func Open() (*Service, error) {
 		return nil, err
 	}
 	s := &Service{Dir: dir, Store: store, Pipe: pipe, set: set, done: make(chan struct{})}
+	s.Video = newVideo(s)
 	pipe.SetEnabled(set.Enabled)
 	pipe.SetHighPass(set.HighPass)
 	pipe.SetGate(set.Gate, set.GateDB)
@@ -68,6 +72,7 @@ func Open() (*Service, error) {
 func (s *Service) Close() {
 	s.closeOnce.Do(func() {
 		close(s.done)
+		s.Video.Close()
 		s.Pipe.Close()
 		vmic.Teardown()
 		s.flush()
@@ -229,7 +234,19 @@ func (s *Service) guardDefaults() {
 	}
 	r, err := vmic.GuardDefaults(set.LastOutput, set.LastInput)
 	if err != nil && !errors.Is(err, vmic.ErrUnsupported) {
-		s.notice("Couldn't check the default audio devices: " + err.Error())
+		// report a failure once, not on every check
+		msg := "Couldn't check the default audio devices: " + err.Error()
+		s.mu.Lock()
+		repeat := msg == s.lastGuardErr
+		s.lastGuardErr = msg
+		s.mu.Unlock()
+		if !repeat {
+			s.notice(msg)
+		}
+	} else {
+		s.mu.Lock()
+		s.lastGuardErr = ""
+		s.mu.Unlock()
 	}
 	if (r.RealOutput != "" && r.RealOutput != set.LastOutput) || (r.RealInput != "" && r.RealInput != set.LastInput) {
 		s.Update(func(st *settings.Settings) {

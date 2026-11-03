@@ -21,14 +21,15 @@ type App struct {
 	page     int
 	sidebar  *sidebar
 	home     *homeScreen
+	camera   *cameraScreen
 	engines  *enginesScreen
 	settings *settingsScreen
 	content  *scroll.Scroll
 	bar      *titlebar.TitleBar
 	toasts   *toaster.Toaster
 	loading  bool
-	// onHome mirrors page == pageHome for the redraw ticker's goroutine.
-	onHome atomic.Bool
+	// onHome and onCamera mirror the page for the redraw ticker's goroutine.
+	onHome, onCamera atomic.Bool
 }
 
 // New builds the interface. Call it after giode.New and before Run.
@@ -39,6 +40,7 @@ func New(win *giode.App, svc *core.Service) *App {
 	a.sidebar = newSidebar(a)
 	a.home = newHomeScreen(a)
 	a.engines = newEnginesScreen(a)
+	a.camera = newCameraScreen(a)
 	a.settings = newSettingsScreen(a)
 	svc.OnNotice = func(msg string) {
 		win.Post(func() {
@@ -79,16 +81,34 @@ func (a *App) Start() {
 	}()
 	go a.tick()
 	go a.svc.Watch()
+	a.camera.refreshCameras()
+	if a.svc.Settings().Video.Enabled {
+		a.camera.restart()
+	}
 }
 
-// tick redraws 20 times a second while the live meters are on screen;
-// otherwise (other page, minimized, in the tray, audio stopped) the UI
-// sleeps and costs nothing.
+// tick redraws 20 times a second while the live meters are on screen, and
+// with each new frame (up to 30 a second) on the camera page; otherwise
+// (other pages, minimized, in the tray) the UI sleeps and costs nothing.
 func (a *App) tick() {
-	t := time.NewTicker(50 * time.Millisecond)
+	t := time.NewTicker(33 * time.Millisecond)
 	defer t.Stop()
+	var lastFrame uint64
+	var n int
 	for range t.C {
-		if !a.onHome.Load() || !a.win.WindowVisible() || !a.svc.Pipe.Running() {
+		n++
+		if !a.win.WindowVisible() {
+			continue
+		}
+		if a.onCamera.Load() {
+			// the camera page redraws only when a new frame arrived
+			if _, seq := a.svc.Video.Preview(); seq != lastFrame {
+				lastFrame = seq
+				a.win.Invalidate()
+			}
+			continue
+		}
+		if !a.onHome.Load() || !a.svc.Pipe.Running() || n%3 == 0 { // meters at 20 Hz
 			continue
 		}
 		in, out := a.svc.Pipe.In.RMS(), a.svc.Pipe.Out.RMS()
@@ -99,6 +119,7 @@ func (a *App) tick() {
 // View is the root view.
 func (a *App) View() giode.Element {
 	a.onHome.Store(a.page == pageHome)
+	a.onCamera.Store(a.page == pageCamera)
 	body := giode.Row(giode.Styles{Width: -1, FlexGrow: 1, Wrap: giode.WrapNoWrap},
 		a.sidebar.View(),
 		giode.Box(giode.Styles{FlexGrow: 1, Height: -1, Width: -1}, a.content))
@@ -113,6 +134,8 @@ func (a *App) View() giode.Element {
 func (a *App) pageView() giode.Element {
 	var page giode.Element
 	switch a.page {
+	case pageCamera:
+		page = a.camera.View()
 	case pageEngines:
 		page = a.engines.View()
 	case pageSettings:

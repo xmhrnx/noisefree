@@ -16,22 +16,23 @@ import (
 //go:embed fonts/*.ttf icons/*.svg
 var assets embed.FS
 
-// Brand colors: a warm gradient from coral (primary) to amber (accent).
+// Brand colors: a soft gradient from coral (primary) to peach (accent), on
+// neutral greys.
 const (
-	brandHot  = "#FF5E3A"
-	brandGold = "#FFB547"
+	brandHot  = "#EE6F57"
+	brandGold = "#F4A983"
 )
 
 var (
 	darkPalette = giode.Palette{
-		Primary: brandHot, Secondary: "#221915", Background: "#0E0A08", Surface: "#18120F",
-		Text: "#F7EFEA", Border: "#2F2521", OnPrimary: "#FFFFFF", Muted: "#A8968C",
-		Accent: brandGold, Success: "#4ADE80", Warning: "#FACC15", Danger: "#F43F5E", Info: "#60A5FA",
+		Primary: brandHot, Secondary: "#1E1F23", Background: "#0F1012", Surface: "#17181B",
+		Text: "#ECECEE", Border: "#2A2B30", OnPrimary: "#FFFFFF", Muted: "#9A9BA3",
+		Accent: brandGold, Success: "#4ADE80", Warning: "#FBBF24", Danger: "#F87171", Info: "#60A5FA",
 	}
 	lightPalette = giode.Palette{
-		Primary: "#E4512B", Secondary: "#F5EDE7", Background: "#FBF6F2", Surface: "#FFFFFF",
-		Text: "#22160F", Border: "#EADFD6", OnPrimary: "#FFFFFF", Muted: "#7E6C61",
-		Accent: "#D9870F", Success: "#16A34A", Warning: "#CA8A04", Danger: "#E11D48", Info: "#2563EB",
+		Primary: "#DE5D46", Secondary: "#F1F1F3", Background: "#F6F6F7", Surface: "#FFFFFF",
+		Text: "#18181B", Border: "#E4E4E7", OnPrimary: "#FFFFFF", Muted: "#6B6B74",
+		Accent: "#D98A5F", Success: "#16A34A", Warning: "#CA8A04", Danger: "#DC2626", Info: "#2563EB",
 	}
 )
 
