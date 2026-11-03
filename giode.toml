@@ -1,0 +1,48 @@
+# giode.toml configures how the giode CLI builds this app.
+# Reference: https://github.com/xmhrnx/giode-cli#giodetoml
+
+[app]
+name = "NoiseFree"
+id = "io.github.xmhrnx.noisefree"            # reverse-DNS, unique to your app; stores never let it change
+version = "0.1.0"
+build = 1                    # raise for every store upload (giode bump)
+icon = "assets/icon.png"
+package = "."
+platforms = ["windows", "macos", "linux"]   # what giode build builds with no target named
+publisher = "NoiseFree"
+description = "Real-time AI noise removal and a virtual microphone for any GPU and CPU"
+website = ""
+
+[macos]
+min_os = 11
+
+[macos.usage]
+microphone = "NoiseFree listens to your microphone to remove background noise in real time. Audio never leaves your computer."
+# identity = "Developer ID Application: Your Name (TEAMID)"  # signs giode build -release
+# notary_id = "you@example.com"     # notarizes, with the password in $GIODE_NOTARY_PASS
+# notary_team_id = "TEAMID"
+
+[windows]
+arch = "amd64"
+cc = "x86_64-w64-mingw32-gcc"  # cgo: miniaudio, RNNoise, the LADSPA host
+
+[windows.msix]
+publisher = "CN=xmhrnx"      # must match the signing certificate's subject when you sign
+
+[windows.installer]
+# per_machine = true         # install for all users into Program Files (asks for admin)
+# desktop_shortcut = true
+# license = "assets/license.txt"
+
+[windows.signing]
+# certificate = "codesign.pfx"   # created by giode cert (testing) or bought; password in $GIODE_WINDOWS_CERT_PASS
+# timestamp = "http://timestamp.digicert.com"
+
+[linux]
+categories = ["AudioVideo", "Audio"]  # freedesktop menu categories
+# license = "MIT"            # SPDX, for .deb, .rpm and AppStream
+
+[ci]
+trigger = "release"                    # build only when a GitHub release is published
+test = "go vet ./... && go test ./..."
+windows_msys2 = true                   # cgo (miniaudio, RNNoise, LADSPA host) builds natively in MSYS2
