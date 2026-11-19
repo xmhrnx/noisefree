@@ -5,6 +5,9 @@ Real-time AI noise removal for your microphone, like NVIDIA Broadcast, but for
 Teams, OBS and the browser through a virtual microphone. Built with
 [Giode](https://github.com/xmhrnx/giode) for Windows, macOS and Linux.
 
+Website: <https://xmhrnx.github.io/noisefree/> (source in `site/`, published by
+the manual *Website* workflow).
+
 ![Microphone page](docs/screenshots/home.png)
 ![Preview](docs/screenshots/preview.png)
 ![Engine library](docs/screenshots/engines.png)

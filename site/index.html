@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NoiseFree: real-time noise removal for any GPU and CPU</title>
+<meta name="description" content="NoiseFree removes background noise from your microphone in real time and hands your clean voice to Discord, Zoom, Teams, OBS and the browser through a virtual microphone. Windows, macOS and Linux.">
+<meta name="theme-color" content="#0E0A08" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FBF6F2" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* The app's own palettes (ui/theme.go). */
+  :root {
+    --bg: #0E0A08; --surface: #18120F; --raised: #1F1814; --text: #F7EFEA; --muted: #A8968C;
+    --border: #2F2521; --primary: #FF5E3A; --accent: #FFB547; --success: #4ADE80;
+    --noise: #4A3B34; --glow: rgba(255, 94, 58, .22);
+    --grad: linear-gradient(120deg, var(--primary), var(--accent));
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #FBF6F2; --surface: #FFFFFF; --raised: #F5EDE7; --text: #22160F; --muted: #7E6C61;
+      --border: #EADFD6; --primary: #E4512B; --accent: #D9870F; --success: #16A34A;
+      --noise: #D9CCC2; --glow: rgba(228, 81, 43, .14);
+      color-scheme: light;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  a { color: inherit; }
+  img { max-width: 100%; display: block; }
+  .wrap { width: min(1140px, 100% - 40px); margin-inline: auto; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+  /* Navigation */
+  nav { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px);
+        background: color-mix(in srgb, var(--bg) 78%, transparent); border-bottom: 1px solid var(--border); }
+  nav .wrap { display: flex; align-items: center; gap: 24px; height: 62px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; letter-spacing: -.01em; }
+  .brand img { width: 30px; height: 30px; }
+  nav .links { margin-left: auto; display: flex; gap: 22px; font-size: 14px; font-weight: 500; }
+  nav .links a { text-decoration: none; color: var(--muted); }
+  nav .links a:hover { color: var(--text); }
+  @media (max-width: 720px) { nav .links a:not(.keep) { display: none; } }
+
+  .btn { display: inline-flex; align-items: center; gap: 9px; padding: 13px 22px; border-radius: 12px;
+         font-weight: 600; font-size: 15px; text-decoration: none; transition: transform .15s, box-shadow .15s; }
+  .btn-primary { background: var(--grad); color: #fff; box-shadow: 0 10px 30px -8px var(--glow), 0 10px 30px -12px var(--primary); }
+  .btn-primary:hover { transform: translateY(-2px); }
+  .btn-ghost { border: 1px solid var(--border); background: var(--surface); }
+  .btn-ghost:hover { border-color: var(--primary); }
+  .btn svg { width: 18px; height: 18px; }
+
+  /* Hero */
+  .hero { position: relative; padding: 84px 0 40px; text-align: center; }
+  .hero::before { content: ""; position: absolute; inset: -120px 0 auto; height: 620px; z-index: -1;
+                  background: radial-gradient(600px 340px at 50% 30%, var(--glow), transparent 70%); }
+  .hero-icon { width: 112px; height: 112px; margin: 0 auto 26px; filter: drop-shadow(0 18px 40px var(--glow)); }
+  .eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 12px; font-weight: 600; letter-spacing: .12em;
+             text-transform: uppercase; color: var(--muted); padding: 6px 14px; border: 1px solid var(--border);
+             border-radius: 999px; background: var(--surface); }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 10px var(--success); }
+  h1 { font-size: clamp(40px, 7.4vw, 84px); line-height: 1.02; letter-spacing: -.045em; font-weight: 800; margin: 22px 0 18px; }
+  .lede { max-width: 640px; margin: 0 auto; color: var(--muted); font-size: clamp(16px, 2.2vw, 19px); }
+  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }
+  .platforms { margin-top: 18px; font-size: 13px; color: var(--muted); }
+
+  /* Noise in, voice out */
+  .wave-card { margin: 56px auto 0; max-width: 940px; padding: 22px 24px 18px; border-radius: 22px;
+               background: var(--surface); border: 1px solid var(--border);
+               box-shadow: 0 30px 80px -30px rgba(0,0,0,.45); }
+  .wave-head { display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 600; letter-spacing: .1em;
+               text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .wave-head b { color: var(--primary); font-weight: 600; }
+  #wave { width: 100%; height: 120px; display: block; }
+  .wave-foot { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; margin-top: 12px; font-size: 12.5px; color: var(--muted); }
+  .wave-foot span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; vertical-align: 0; }
+  .wave-foot .raw::before { background: var(--noise); }
+  .wave-foot .clean::before { background: var(--grad); }
+
+  section { padding: 96px 0 0; }
+  .kicker { font-size: 12.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--primary); }
+  h2 { font-size: clamp(30px, 4.4vw, 46px); line-height: 1.08; letter-spacing: -.035em; margin: 10px 0 14px; font-weight: 800; }
+  .sub { color: var(--muted); max-width: 620px; margin: 0; }
+
+  /* Signal chain */
+  .chain { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 40px; position: relative; }
+  .node { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 20px; position: relative; }
+  .node .n { font-size: 12px; color: var(--muted); }
+  .node h3 { margin: 6px 0 6px; font-size: 17px; letter-spacing: -.01em; }
+  .node p { margin: 0; font-size: 14px; color: var(--muted); }
+  .node:not(:last-child)::after { content: "→"; position: absolute; right: -13px; top: 50%; translate: 0 -50%; z-index: 1;
+             width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; font-size: 13px;
+             background: var(--grad); color: #fff; font-weight: 700; }
+  .node.hot { border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+              background: linear-gradient(160deg, color-mix(in srgb, var(--primary) 12%, var(--surface)), var(--surface)); }
+  @media (max-width: 860px) {
+    .chain { grid-template-columns: 1fr 1fr; }
+    .node:nth-child(2)::after { display: none; }
+  }
+  @media (max-width: 520px) {
+    .chain { grid-template-columns: 1fr; }
+    .node:not(:last-child)::after { display: grid; right: 50%; top: auto; bottom: -13px; translate: 50% 0; content: "↓"; }
+  }
+
+  /* Features */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
+  .feature { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 24px; }
+  .feature .ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 16px;
+                  color: var(--primary); background: color-mix(in srgb, var(--primary) 14%, var(--surface)); }
+  .feature .ico svg { width: 21px; height: 21px; }
+  .feature h3 { margin: 0 0 6px; font-size: 17px; letter-spacing: -.01em; }
+  .feature p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  @media (max-width: 900px) { .features { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 600px) { .features { grid-template-columns: 1fr; } }
+
+  /* Screenshots */
+  .shots { margin-top: 36px; }
+  .tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); }
+  .tabs button { font: inherit; font-size: 13.5px; font-weight: 600; border: 0; background: none; color: var(--muted);
+                 padding: 8px 14px; border-radius: 9px; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--raised); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
+  .window { margin-top: 18px; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); background: var(--surface);
+            box-shadow: 0 40px 90px -40px rgba(0,0,0,.6), 0 0 0 6px color-mix(in srgb, var(--primary) 6%, transparent); }
+  .window .bar { display: flex; gap: 7px; padding: 11px 14px; border-bottom: 1px solid var(--border); }
+  .window .bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--border); }
+  .window img { width: 100%; height: auto; aspect-ratio: 1240 / 820; }
+  .caption { color: var(--muted); font-size: 14px; margin-top: 14px; min-height: 1.6em; }
+
+  /* Engines table */
+  .table-wrap { margin-top: 36px; overflow-x: auto; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14.5px; }
+  th, td { text-align: left; padding: 14px 18px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td small { color: var(--muted); }
+  .pips { display: inline-flex; gap: 3px; }
+  .pips i { width: 14px; height: 5px; border-radius: 3px; background: var(--border); }
+  .pips i.on { background: var(--primary); }
+  .pips.cpu i.on { background: var(--accent); }
+  .tag { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+         background: color-mix(in srgb, var(--primary) 14%, var(--surface)); color: var(--primary); }
+  .tag.gpu { background: color-mix(in srgb, var(--success) 14%, var(--surface)); color: var(--success); }
+  .note { font-size: 14px; color: var(--muted); margin-top: 14px; }
+  code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .88em; padding: 2px 6px; border-radius: 6px; background: var(--raised); border: 1px solid var(--border); }
+
+  /* Virtual mic per OS + download */
+  .os-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 36px; }
+  .os { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; }
+  .os h3 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
+  .os .pk { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 14px; }
+  .os .pk span { font-size: 12px; padding: 3px 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--raised); }
+  .os p { margin: 0 0 18px; font-size: 14.5px; color: var(--muted); flex: 1; }
+  .os p a { color: var(--primary); }
+  .os .btn { justify-content: center; }
+  @media (max-width: 860px) { .os-grid { grid-template-columns: 1fr; } }
+
+  .closing { margin-top: 96px; padding: 56px 28px; text-align: center; border-radius: 26px; position: relative; overflow: hidden;
+             background: var(--grad); color: #fff; }
+  .closing h2 { margin-top: 0; }
+  .closing p { margin: 0 auto 26px; max-width: 560px; opacity: .92; }
+  .closing .btn { background: #fff; color: #22160F; }
+  .closing .btn.alt { background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.4); }
+
+  footer { margin-top: 72px; padding: 30px 0 44px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; }
+  footer .right { margin-left: auto; display: flex; gap: 22px; flex-wrap: wrap; }
+  footer a { text-decoration: none; }
+  footer a:hover { color: var(--text); }
+  @media (max-width: 600px) { footer .right { margin-left: 0; } }
+
+  @media (max-width: 420px) { .eyebrow { letter-spacing: .06em; font-size: 11px; } }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn { transition: none; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="img/icon.png" alt="">NoiseFree</a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#screenshots">Screenshots</a>
+      <a href="#engines">Engines</a>
+      <a class="keep" href="#download">Download</a>
+      <a class="keep" href="https://github.com/xmhrnx/noisefree">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <img class="hero-icon" src="img/icon.png" alt="NoiseFree icon" width="112" height="112">
+    <span class="eyebrow"><span class="dot"></span>AI noise removal · free and open source</span>
+    <h1>Crystal-clear voice<br>on <span class="grad-text">any GPU, any CPU.</span></h1>
+    <p class="lede">NoiseFree removes background noise from your microphone in real time and hands your clean
+      voice to Discord, Zoom, Teams, OBS and the browser through a virtual microphone.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/xmhrnx/noisefree/releases/latest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
+        Download NoiseFree</a>
+      <a class="btn btn-ghost" href="https://github.com/xmhrnx/noisefree">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"/></svg>
+        View the source</a>
+    </div>
+    <p class="platforms">Windows · macOS · Linux</p>
+
+    <div class="wave-card" aria-hidden="true">
+      <div class="wave-head"><span>Microphone</span><b>NoiseFree Microphone</b></div>
+      <svg id="wave" viewBox="0 0 900 120" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="g" x1="0" x2="1">
+            <stop offset="0" stop-color="var(--primary)" style="stop-color: var(--primary)"/>
+            <stop offset="1" stop-color="var(--accent)" style="stop-color: var(--accent)"/>
+          </linearGradient>
+        </defs>
+        <g id="bars"></g>
+        <line id="scan" x1="450" x2="450" y1="4" y2="116" stroke="var(--text)" style="stroke: var(--text)" stroke-width="2" stroke-linecap="round" opacity=".8"/>
+      </svg>
+      <div class="wave-foot"><span class="raw">Raw: voice, keyboard, fan</span><span class="clean">Clean: just your voice</span></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="how">
+    <div class="wrap">
+      <div class="kicker">How it works</div>
+      <h2>Your voice in. Only your voice out.</h2>
+      <p class="sub">NoiseFree sits between your real microphone and every app that listens to it.</p>
+      <div class="chain">
+        <div class="node"><div class="n mono">01</div><h3>Your microphone</h3><p>Any input device, or the system default.</p></div>
+        <div class="node hot"><div class="n mono">02</div><h3>A noise engine</h3><p>RNNoise, NoiseFree Lite, DeepFilterNet, DTLN or your own plugin.</p></div>
+        <div class="node"><div class="n mono">03</div><h3>Voice extras</h3><p>Optional enhancements after noise removal, such as a rumble filter below 80 Hz.</p></div>
+        <div class="node"><div class="n mono">04</div><h3>NoiseFree Microphone</h3><p>Pick it in Discord, Zoom, Teams, OBS or your browser.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="kicker">Features</div>
+      <h2>Built for every computer,<br>not just the one with the big GPU.</h2>
+      <div class="features">
+        <div class="feature">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="14" y="3" rx="1"/><path d="M10 21V8a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1H3"/></svg></div>
+          <h3>Swappable engines</h3>
+          <p>Two engines are built in and work offline. Install more from the Engines page, add any LADSPA voice plugin, or describe a new engine in a JSON manifest.</p>
+        </div>
+        <div class="feature">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></svg></div>
+          <h3>GPU optional</h3>
+          <p>Neural engines can run on DirectML (any DirectX 12 GPU), Core ML (Apple silicon) or CUDA (NVIDIA on Linux). Without one they fall back to the CPU and tell you why.</p>
+        </div>
+        <div class="feature">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2"/></svg></div>
+          <h3>Hear the difference</h3>
+          <p>Record up to 10 seconds, play it back, and switch between the cleaned and the original take while it plays.</p>
+        </div>
+        <div class="feature">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg></div>
+          <h3>Your speakers stay yours</h3>
+          <p>Virtual cable drivers like to make themselves the default output, which silences the computer. NoiseFree notices within seconds and switches your real devices back (Windows and Linux).</p>
+        </div>
+        <div class="feature">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg></div>
+          <h3>Light on resources</h3>
+          <p>The suppressor runs on the audio thread with no allocations and no extra threads. In the repo's tests RNNoise uses about 1–2% of one core, NoiseFree Lite about 0.4%.</p>
+        </div>
+        <div class="feature">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></div>
+          <h3>Stays on your computer</h3>
+          <p>Audio is processed locally and never leaves your machine. The UI redraws only while its live meters are on screen.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screenshots">
+    <div class="wrap">
+      <div class="kicker">Screenshots</div>
+      <h2>Warm, calm and out of your way.</h2>
+      <div class="shots">
+        <div class="tabs" role="tablist" aria-label="Screenshots">
+          <button role="tab" aria-selected="true" data-src="img/home.png" data-cap="The Microphone page: one switch, live meters for your raw and cleaned voice, engine and device choices.">Microphone</button>
+          <button role="tab" aria-selected="false" data-src="img/preview.png" data-cap="Preview: record yourself and flip between With NoiseFree and Original while it plays.">Preview</button>
+          <button role="tab" aria-selected="false" data-src="img/engines.png" data-cap="The engine library, with quality, CPU use and latency for each engine.">Engines</button>
+          <button role="tab" aria-selected="false" data-src="img/add-engine.png" data-cap="Add your own engine: a LADSPA plugin file, or a JSON manifest from disk or a URL.">Add engine</button>
+          <button role="tab" aria-selected="false" data-src="img/home-light.png" data-cap="The light theme.">Light theme</button>
+        </div>
+        <div class="window">
+          <div class="bar"><i></i><i></i><i></i></div>
+          <img id="shot" src="img/home.png" alt="NoiseFree screenshot" width="1240" height="820">
+        </div>
+        <p class="caption" id="cap">The Microphone page: one switch, live meters for your raw and cleaned voice, engine and device choices.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="engines">
+    <div class="wrap">
+      <div class="kicker">Engines</div>
+      <h2>Pick the cleaner that fits your machine.</h2>
+      <p class="sub">From a pure-Go filter for old laptops to neural networks that can move to your GPU.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Engine</th><th>Tech</th><th>Quality</th><th>CPU</th><th>GPU</th><th>Platforms</th></tr></thead>
+          <tbody>
+            <tr><td><b>NoiseFree Lite</b> <span class="tag">Built in</span></td><td>Pure-Go Wiener filter</td><td><span class="pips"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span></td><td><span class="pips cpu"><i class="on"></i><i></i><i></i><i></i><i></i></span></td><td><small>–</small></td><td>all</td></tr>
+            <tr><td><b>RNNoise</b> <span class="tag">Built in</span></td><td>Xiph RNN, compiled in</td><td><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></td><td><span class="pips cpu"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span></td><td><small>–</small></td><td>all</td></tr>
+            <tr><td><b>RNNoise Voice Gate</b></td><td>LADSPA (werman)</td><td><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></td><td><span class="pips cpu"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span></td><td><small>–</small></td><td>Windows, macOS, Linux</td></tr>
+            <tr><td><b>DeepFilterNet 3</b></td><td>LADSPA</td><td><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></td><td><span class="pips cpu"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></td><td><small>–</small></td><td>Windows x64, Linux x64/arm64</td></tr>
+            <tr><td><b>DTLN Neural</b></td><td>ONNX Runtime</td><td><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></td><td><span class="pips cpu"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></td><td><span class="tag gpu">GPU</span></td><td>Windows x64, macOS arm64, Linux x64/arm64</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Bring your own: <b>Engines → Add engine</b> runs any LADSPA plugin's first mono effect at 48 kHz, or installs an engine from a JSON manifest.</p>
+    </div>
+  </section>
+
+  <section id="download">
+    <div class="wrap">
+      <div class="kicker">Download</div>
+      <h2>Get NoiseFree.</h2>
+      <p class="sub">Packages are attached to every GitHub release. The virtual microphone works a little differently on each system:</p>
+      <div class="os-grid">
+        <div class="os">
+          <h3>Windows</h3>
+          <div class="pk mono"><span>setup .exe</span><span>.msix</span></div>
+          <p>NoiseFree plays into the free <a href="https://vb-audio.com/Cable/">VB-Audio Virtual Cable</a>; pick <b>CABLE Output</b> as your microphone. Neural engines can use any DirectX 12 GPU.</p>
+          <a class="btn btn-ghost" href="https://github.com/xmhrnx/noisefree/releases/latest">Download for Windows</a>
+        </div>
+        <div class="os">
+          <h3>macOS</h3>
+          <div class="pk mono"><span>universal .dmg</span></div>
+          <p>NoiseFree plays into the free <a href="https://existential.audio/blackhole/">BlackHole 2ch</a>; pick <b>BlackHole 2ch</b> as your microphone. Core ML runs neural engines on Apple silicon.</p>
+          <a class="btn btn-ghost" href="https://github.com/xmhrnx/noisefree/releases/latest">Download for macOS</a>
+        </div>
+        <div class="os">
+          <h3>Linux</h3>
+          <div class="pk mono"><span>.deb</span><span>.rpm</span></div>
+          <p>NoiseFree creates <b>NoiseFree Microphone</b> itself through PulseAudio or PipeWire and removes it on exit. Nothing else to install.</p>
+          <a class="btn btn-ghost" href="https://github.com/xmhrnx/noisefree/releases/latest">Download for Linux</a>
+        </div>
+      </div>
+
+      <div class="closing">
+        <h2>Quiet the room. Keep the voice.</h2>
+        <p>Free and open source under the Apache License 2.0. Read the code, build it yourself with <span class="mono">giode build</span>, or add your own engine.</p>
+        <div class="cta">
+          <a class="btn" href="https://github.com/xmhrnx/noisefree/releases/latest">Latest release</a>
+          <a class="btn alt" href="https://github.com/xmhrnx/noisefree">Source on GitHub</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>NoiseFree · <a href="https://github.com/xmhrnx/noisefree/blob/main/LICENSE">Apache License 2.0</a></span>
+    <span>Built with <a href="https://github.com/xmhrnx/giode">Giode</a></span>
+    <div class="right">
+      <a href="https://github.com/xmhrnx/noisefree">Source</a>
+      <a href="https://github.com/xmhrnx/noisefree/releases">Releases</a>
+      <a href="https://github.com/xmhrnx/noisefree/issues">Issues</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Screenshot tabs.
+  const shot = document.getElementById('shot'), cap = document.getElementById('cap');
+  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(o => o.setAttribute('aria-selected', o === b));
+    shot.src = b.dataset.src; cap.textContent = b.dataset.cap;
+  }));
+
+  // Hero waveform: noisy bars left of the scan line, clean voice right of it.
+  (function () {
+    const N = 90, W = 900, H = 120, g = document.getElementById('bars'), scan = document.getElementById('scan');
+    const ns = 'http://www.w3.org/2000/svg', bars = [];
+    for (let i = 0; i < N; i++) {
+      const r = document.createElementNS(ns, 'rect');
+      r.setAttribute('x', i * (W / N) + 2); r.setAttribute('width', W / N - 4); r.setAttribute('rx', 2.5);
+      g.appendChild(r); bars.push(r);
+    }
+    const voice = (i, t) => {
+      const syl = Math.max(0, Math.sin(i * 0.23 + t * 1.3)) * 0.7 + Math.max(0, Math.sin(i * 0.61 - t * 0.9)) * 0.3;
+      return 0.08 + 0.78 * syl;
+    };
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function draw(t) {
+      const split = still ? 0.42 : 0.42 + 0.12 * Math.sin(t * 0.35);
+      scan.setAttribute('x1', split * W); scan.setAttribute('x2', split * W);
+      bars.forEach((r, i) => {
+        const clean = i / N > split;
+        let a = voice(i, t);
+        if (!clean) a = Math.min(1, a * 0.75 + 0.22 + Math.abs(Math.sin(i * 12.9898 + t * 7)) * 0.32);
+        const h = Math.max(6, a * (H - 12));
+        r.setAttribute('y', (H - h) / 2); r.setAttribute('height', h);
+        r.setAttribute('fill', clean ? 'url(#g)' : 'var(--noise)');
+        r.style.fill = clean ? 'url(#g)' : 'var(--noise)';
+      });
+    }
+    if (still) { draw(0); return; }
+    const loop = ms => { draw(ms / 1000); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  })();
+</script>
+</body>
+</html>
