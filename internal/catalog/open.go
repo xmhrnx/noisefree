@@ -29,6 +29,9 @@ func GPUNeedsPack() bool { return runtime.GOOS != "darwin" }
 
 // GPUSupported reports whether this platform has any GPU backend.
 func GPUSupported() bool {
+	if Sandboxed() {
+		return false // the GPU runs through ONNX Runtime, a download
+	}
 	if runtime.GOOS == "darwin" {
 		return runtime.GOARCH == "arm64"
 	}

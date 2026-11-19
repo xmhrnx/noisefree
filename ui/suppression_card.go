@@ -86,6 +86,8 @@ func (c *suppressionCard) View(st giode.Styles) giode.Element {
 	e, _ := c.a.svc.Store.Get(set.Engine)
 	gpuDesc := "Run neural engines on your graphics card to free the CPU."
 	switch {
+	case catalog.Sandboxed():
+		gpuDesc = "The Mac App Store version runs its built-in engines on the CPU."
 	case !catalog.GPUSupported():
 		gpuDesc = "No GPU backend is available for this computer."
 	case !e.GPU:

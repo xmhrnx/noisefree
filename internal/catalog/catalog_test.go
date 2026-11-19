@@ -139,3 +139,32 @@ func TestInstallDTLNFromInternet(t *testing.T) {
 	t.Logf("backend %s, warning %q", p.Backend(), warn)
 	p.Process(make([]float32, p.FrameSize()))
 }
+
+func TestSandboxed(t *testing.T) {
+	env := func(vars map[string]string) func(string) string {
+		return func(k string) string { return vars[k] }
+	}
+	cases := []struct {
+		goos string
+		vars map[string]string
+		want bool
+	}{
+		{"darwin", map[string]string{"HOME": "/Users/me"}, false},
+		{"darwin", map[string]string{"APP_SANDBOX_CONTAINER_ID": "io.github.xmhrnx.noisefree"}, true},
+		{"darwin", map[string]string{"HOME": "/Users/me/Library/Containers/io.github.xmhrnx.noisefree/Data"}, true},
+		{"linux", map[string]string{"APP_SANDBOX_CONTAINER_ID": "x"}, false},
+	}
+	for _, c := range cases {
+		if got := sandboxed(c.goos, env(c.vars)); got != c.want {
+			t.Errorf("sandboxed(%s, %v) = %v, want %v", c.goos, c.vars, got, c.want)
+		}
+	}
+	for _, e := range builtinOnly(Builtin()) {
+		if !e.Builtin || len(e.Downloads) > 0 {
+			t.Errorf("builtinOnly kept %s, which isn't compiled in", e.ID)
+		}
+	}
+	if n := len(builtinOnly(Builtin())); n != 2 {
+		t.Errorf("builtinOnly kept %d engines, want Lite and RNNoise", n)
+	}
+}

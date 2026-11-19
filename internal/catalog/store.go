@@ -36,6 +36,12 @@ func NewStore(dir string) (*Store, error) {
 
 // Reload rebuilds the catalog from the built-in list and user manifests.
 func (s *Store) Reload() error {
+	if Sandboxed() {
+		s.mu.Lock()
+		s.entries = builtinOnly(Builtin())
+		s.mu.Unlock()
+		return nil
+	}
 	entries := Builtin()
 	var errs []error
 	files, _ := filepath.Glob(filepath.Join(s.Dir, "catalog", "*.json"))
@@ -182,6 +188,9 @@ func (s *Store) Remove(id string) error {
 // AddManifest validates a manifest and saves it into the catalog.
 func (s *Store) AddManifest(data []byte) (Entry, error) {
 	var e Entry
+	if Sandboxed() {
+		return e, ErrSandboxed
+	}
 	if err := json.Unmarshal(data, &e); err != nil {
 		return e, fmt.Errorf("not an engine manifest: %w", err)
 	}
@@ -205,6 +214,9 @@ func (s *Store) AddManifest(data []byte) (Entry, error) {
 // AddPluginFile installs a LADSPA library the user picked from disk as a
 // custom engine and returns its entry.
 func (s *Store) AddPluginFile(name string, data []byte) (Entry, error) {
+	if Sandboxed() {
+		return Entry{}, ErrSandboxed
+	}
 	base := strings.TrimSuffix(filepath.Base(name), filepath.Ext(name))
 	id := "custom-" + sanitize(base)
 	e := Entry{

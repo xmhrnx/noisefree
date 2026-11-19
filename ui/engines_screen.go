@@ -86,10 +86,15 @@ func (s *enginesScreen) View() giode.Element {
 		cards = append(cards, giode.Text("No engines match this filter.", muted))
 	}
 
+	// The Mac App Store build can't download or load other engines.
+	var add giode.Element = s.add
+	if catalog.Sandboxed() {
+		add = giode.Box(giode.Styles{Display: giode.DisplayNone})
+	}
 	return giode.Stack(giode.Styles{Gap: 20, Width: -1},
 		giode.Row(giode.Styles{Gap: 16, Align: giode.AlignEnd, Wrap: giode.WrapNoWrap, Width: -1},
 			pageHeader("Engines", "Install the noise suppressor that suits your voice and your hardware."),
-			spacer(), s.add),
+			spacer(), add),
 		giode.Row(giode.Styles{Wrap: giode.WrapNoWrap}, s.filter),
 		s.gpuPack(),
 		giode.Row(giode.Styles{Gap: 20, Width: -1, Align: giode.AlignStretch}, cards...),

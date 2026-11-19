@@ -22,6 +22,9 @@ type Progress func(fraction float64, status string)
 
 // Install downloads an entry and everything it requires.
 func (s *Store) Install(ctx context.Context, id string, progress Progress) error {
+	if Sandboxed() {
+		return ErrSandboxed
+	}
 	e, ok := s.Get(id)
 	if !ok {
 		return fmt.Errorf("unknown engine %q", id)
