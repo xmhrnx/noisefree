@@ -18,6 +18,25 @@ min_os = 11
 
 [macos.usage]
 microphone = "NoiseFree listens to your microphone to remove background noise in real time. Audio never leaves your computer."
+
+[macos.plist]
+LSApplicationCategoryType = "public.app-category.utilities"   # the Mac App Store requires it
+# Only standard encryption (HTTPS for engine downloads, through Go and the
+# OS), so App Store Connect asks no export compliance questions per upload.
+ITSAppUsesNonExemptEncryption = false
+
+# The Mac App Store build (giode build mas). The release workflow writes
+# the profile from the MACOS_PROFILE_BASE64 secret and points
+# $GIODE_MACOS_STORE_PROFILE at it; keep the profile out of git.
+# In the sandbox NoiseFree has only its built-in engines (NoiseFree Lite and
+# RNNoise): the store allows no downloaded code (guideline 2.5.2), and the
+# sandbox won't load other developers' LADSPA plugins or ONNX Runtime.
+[macos.store]
+entitlements = [
+  "device.audio-input",  # the microphone it cleans
+  "network.client",      # giode's single-instance lock is a loopback socket
+  "network.server",
+]
 # identity = "Developer ID Application: Your Name (TEAMID)"  # signs giode build -release
 # notary_id = "you@example.com"     # notarizes, with the password in $GIODE_NOTARY_PASS
 # notary_team_id = "TEAMID"
@@ -26,8 +45,17 @@ microphone = "NoiseFree listens to your microphone to remove background noise in
 arch = "amd64"
 cc = "x86_64-w64-mingw32-gcc"  # cgo: miniaudio, RNNoise, the LADSPA host
 
+# The Microsoft Store package (giode build msix). The Store signs it.
+# identity_name must match Partner Center → NoiseFree → Product identity →
+# Package/Identity/Name once the name is reserved; publisher and
+# publisher_display_name are the account's (as for EasySend and AnyFile).
+# The release workflow adds <DeviceCapability Name="microphone"/> with
+# internal/cmd/msixmic: the CLI can't declare it yet.
 [windows.msix]
-publisher = "CN=xmhrnx"      # must match the signing certificate's subject when you sign
+identity_name = "MehranZahir.NoiseFree"
+publisher = "CN=B40E8F57-A7E0-40BB-8E74-5D051D0B578B"
+publisher_display_name = "Mehran Zahiroddini"
+startup_task = true          # Settings → Start at login (a package can't use the Run key)
 
 [windows.installer]
 # per_machine = true         # install for all users into Program Files (asks for admin)
@@ -42,6 +70,23 @@ publisher = "CN=xmhrnx"      # must match the signing certificate's subject when
 categories = ["AudioVideo", "Audio"]  # freedesktop menu categories
 license = "Apache-2.0"       # SPDX, for .deb, .rpm and AppStream
 
+# Privacy manifest (PrivacyInfo.xcprivacy) for the Mac App Store: no
+# tracking, and nothing collected. Audio stays on the computer; the only
+# network use is downloading engines the user installs (not in the store
+# build).
+[privacy]
+tracking = false
+
+# GitHub Actions: giode ci writes .github/workflows/release.yml from this.
+# After `giode ci -f`, redo these edits by hand (CLI v0.1.35-alpha.1):
+# - pin `go install github.com/xmhrnx/giode-cli/cmd/giode@v0.1.35-alpha.1`
+#   (instead of @latest) and use `go-version-file: go.mod` (instead of
+#   `go-version: stable`) in every job;
+# - windows job: after the build, run `go run ./internal/cmd/msixmic
+#   dist/windows/*.msix` (the MSIX's microphone capability);
+# - macos job: build the signed .dmg with .github/scripts/macos-dmg.sh,
+#   which signs with assets/macos/developer-id.entitlements (the hardened
+#   runtime blocks the microphone without device.audio-input).
 [ci]
 trigger = "release"                    # build only when a GitHub release is published
 test = "go vet ./... && go test ./..."
