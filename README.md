@@ -114,14 +114,16 @@ platform needs a C compiler. On Linux you also need Gio's usual headers (see
 It runs `go vet` and `go test`, then builds:
 
 - Linux: `.deb` and `.rpm`
-- macOS: a universal `.dmg`
-- Windows (in MSYS2): a setup `.exe` and an `.msix`
+- macOS: a universal `.dmg` (signed with the microphone entitlement and
+  notarized when the secrets are set) and, with the store secrets, a Mac App
+  Store `.pkg`
+- Windows (in MSYS2): a setup `.exe` and a Microsoft Store `.msix`
 
-The files are attached to the release. Signing is optional: add the
-`MACOS_CERT_BASE64`, `WINDOWS_CERT_BASE64` and related secrets to sign builds;
-without them, builds are unsigned (Windows installs only signed MSIX packages,
-so use the setup `.exe` until then). The workflow is generated from `[ci]` in
-`giode.toml`; run `giode ci -f` after changing it rather than editing the file.
+The files are attached to the release. Signing is optional: without the
+secrets, builds are unsigned (the `.msix` is for the Store, which signs it).
+The workflow is generated from `[ci]` in `giode.toml`; run `giode ci -f` after
+changing it, then redo the hand edits listed there. [RELEASING.md](RELEASING.md)
+has the secrets, the store setup and the listing copy.
 
 ## Layout
 
@@ -137,6 +139,7 @@ internal/audio           miniaudio duplex pipeline, monitor output, stats
 internal/vmic            virtual microphone per OS
 internal/settings        JSON settings
 internal/core            ties it together; no UI code
+internal/cmd/msixmic     release tool: declares the microphone in the MSIX
 ui/                      Giode interface, one component per file
 ```
 
