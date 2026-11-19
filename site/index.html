@@ -171,6 +171,19 @@
   .closing .btn { background: #fff; color: #22160F; }
   .closing .btn.alt { background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.4); }
 
+  /* Privacy policy */
+  .policy { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 36px; }
+  .policy .item { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 24px; }
+  .policy h3 { margin: 0 0 8px; font-size: 17px; letter-spacing: -.01em; }
+  .policy p, .policy li { margin: 0; font-size: 14.5px; color: var(--muted); }
+  .policy ul { margin: 0; padding-left: 18px; }
+  .policy li + li { margin-top: 6px; }
+  .policy p + p, .policy p + ul, .policy ul + p { margin-top: 8px; }
+  .policy a { color: var(--primary); }
+  .policy code { overflow-wrap: anywhere; }
+  .policy .wide { grid-column: 1 / -1; }
+  @media (max-width: 760px) { .policy { grid-template-columns: 1fr; } }
+
   footer { margin-top: 72px; padding: 30px 0 44px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; }
   footer .right { margin-left: auto; display: flex; gap: 22px; flex-wrap: wrap; }
@@ -363,6 +376,43 @@
       </div>
     </div>
   </section>
+  <section id="privacy">
+    <div class="wrap">
+      <div class="kicker">Privacy</div>
+      <h2>Privacy policy.</h2>
+      <p class="sub">NoiseFree has no accounts, no analytics, no ads and no tracking, and it sends nothing to its developer. This policy covers the app from every source: the GitHub releases, the Microsoft Store and the Mac App Store. Last updated November 19, 2026.</p>
+      <div class="policy">
+        <div class="item">
+          <h3>Your microphone</h3>
+          <p>NoiseFree reads your microphone only while noise removal or Preview is on, to clean your voice. The audio is processed in memory on your computer and goes only to the output you choose: the virtual microphone (VB-Cable, BlackHole or NoiseFree Microphone) or your own speakers for monitoring. It is never recorded to disk, uploaded or analysed for anything else.</p>
+          <p>A Preview take (up to 10 seconds) stays in memory and is gone when you record another one or quit.</p>
+        </div>
+        <div class="item">
+          <h3>What stays on your computer</h3>
+          <p>Your settings (on/off, engine, strength, chosen devices and their names, theme and window options) are saved in a <code>settings.json</code> file in NoiseFree's folder, along with engines you install and manifests you add. Settings → Engines and settings opens it. Uninstalling NoiseFree and deleting that folder removes everything.</p>
+        </div>
+        <div class="item">
+          <h3>When NoiseFree uses the internet</h3>
+          <p>Only when you ask it to. Installing an engine from the Engines page downloads its files from where its card says they come from:</p>
+          <ul>
+            <li>GitHub (<code>github.com</code>, <code>raw.githubusercontent.com</code>) for DeepFilterNet, RNNoise Voice Gate, DTLN and ONNX Runtime;</li>
+            <li>NuGet (<code>api.nuget.org</code>) for the Windows GPU acceleration pack;</li>
+            <li>the address you type or that a manifest you add names.</li>
+          </ul>
+          <p>Like any download, these requests reveal your IP address to that server, under its own privacy policy. Nothing about you or your audio is sent. Links such as the VB-Cable or BlackHole download page open in your browser.</p>
+        </div>
+        <div class="item">
+          <h3>Nothing collected</h3>
+          <p>NoiseFree does not collect, store or share personal data, does not use cookies or identifiers, and contains no third-party SDKs that do. The Mac App Store version has only the built-in engines and never goes online. In App Store terms: Data Not Collected; in Microsoft Store terms: no personal information is collected or transmitted.</p>
+          <p>This website is a static page on GitHub Pages; it sets no cookies and runs no analytics. GitHub may log visits as described in its own privacy statement.</p>
+        </div>
+        <div class="item wide">
+          <h3>Children, changes and contact</h3>
+          <p>NoiseFree is suitable for all ages and collects nothing from anyone, children included. If this policy changes, the new version appears here with a new date. Questions? Open an issue at <a href="https://github.com/xmhrnx/noisefree/issues">github.com/xmhrnx/noisefree/issues</a>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -373,6 +423,7 @@
       <a href="https://github.com/xmhrnx/noisefree">Source</a>
       <a href="https://github.com/xmhrnx/noisefree/releases">Releases</a>
       <a href="https://github.com/xmhrnx/noisefree/issues">Issues</a>
+      <a href="#privacy">Privacy</a>
     </div>
   </div>
 </footer>
